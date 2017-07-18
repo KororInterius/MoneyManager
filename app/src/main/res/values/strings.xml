@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">MoneyManager</string>
+    <string name="income">Доход</string>
+    <string name="consumption">Расход</string>
+    <string name="name">Имя</string>
+    <string name="money">Сумма</string>
+    <string name="deleteRec">Удалить запись</string>
+    <string name="title_activity_history">History</string>
+</resources>
