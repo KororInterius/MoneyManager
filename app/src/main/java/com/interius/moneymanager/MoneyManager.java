@@ -27,6 +27,7 @@ import java.util.Calendar;
 public class MoneyManager extends AppCompatActivity {
 
     private static final int CM_DELETE_ID = 1;
+    private static final int CM_UPDATE_ID = 2;
     ListView listView;
     MyDatabase database;
     SimpleCursorAdapter cursorAdapter;
@@ -49,11 +50,11 @@ public class MoneyManager extends AppCompatActivity {
         cursor = database.getAllData();
         startManagingCursor(cursor);
 
-        String[] form = new String[]{database.COLUMN_NAME, database.COLUMN_MONEY,
+        String[] from = new String[]{database.COLUMN_NAME, database.COLUMN_MONEY,
                 database.COLUMN_DATE};
         int[] to = new int[]{R.id.item_text1, R.id.item_text2, R.id.item_text3};
 
-        cursorAdapter = new SimpleCursorAdapter(this, R.layout.item, cursor,form,to);
+        cursorAdapter = new SimpleCursorAdapter(this, R.layout.item, cursor,from,to);
         listView = (ListView) findViewById(R.id.listView);
         listView.setAdapter(cursorAdapter);
 
@@ -144,6 +145,7 @@ public class MoneyManager extends AppCompatActivity {
     {
         super.onCreateContextMenu(menu,view,contextMenuInfo);
         menu.add(0,CM_DELETE_ID,0,R.string.deleteRec);
+        menu.add(0,CM_UPDATE_ID,0,R.string.updateRec);
     }
 
     public boolean onContextItemSelected(MenuItem item)
@@ -160,6 +162,74 @@ public class MoneyManager extends AppCompatActivity {
             textTotalMoney.setText(Integer.toString(totalMoney));
             database.delRec(adapterContextMenuInfo.id);
             cursor.requery();
+            return true;
+        }
+        if(item.getItemId() == CM_UPDATE_ID)
+        {
+            //удаление строки при удерживании на ней, так же высчитывается общее количтво денег
+            final AdapterView.AdapterContextMenuInfo adapterContextMenuInfo2 =
+                    (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+            c=database.findRec(adapterContextMenuInfo2.position);
+            final int oldMoney = c.getInt(c.getColumnIndex(MyDatabase.COLUMN_MONEY)); // текущие деньги
+            final String oldName = c.getString(c.getColumnIndex(MyDatabase.COLUMN_NAME));
+            final LayoutInflater inflater = this.getLayoutInflater();
+            AlertDialog.Builder alertBuilder = new AlertDialog.Builder(MoneyManager.this);
+            if(oldMoney>0)
+                alertBuilder.setTitle("Введите доход");
+            else
+                alertBuilder.setTitle("Введите расход");
+            //передаем инфлейтеру созданный xml - файл и присваем это view
+            View v = inflater.inflate(R.layout.dialog_items,null);
+            //добавляем готовый view в алерт диалог
+            alertBuilder.setView(v);
+
+            final EditText textName = (EditText) v.findViewById(R.id.dialogName);
+            final EditText textMoney = (EditText) v.findViewById(R.id.dialogMoney);
+            textName.setText(oldName);
+            textMoney.setText(Integer.toString(oldMoney));
+
+            //получаем текущую дату и время
+            Calendar calendar = Calendar.getInstance();
+            SimpleDateFormat df = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+            final String formatedDate = df.format(calendar.getTime());
+            if(oldMoney>0) {
+                alertBuilder.setPositiveButton("Изменить", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (!textName.getText().toString().isEmpty() && !textMoney.getText().toString().isEmpty()) {
+                            //добавляем новую запись в бд использую данные из алерт диалога
+                            database.update(adapterContextMenuInfo2.id,textName.getText().toString(), Integer.parseInt(textMoney.getText().toString()), formatedDate);
+                            cursor.requery();
+                            try {
+                                //добовляем новый доход к общему количеству денег
+                                totalMoney += (Integer.parseInt(textMoney.getText().toString())-oldMoney);
+                                textTotalMoney.setText(Integer.toString(totalMoney));
+                            } catch (NumberFormatException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                });
+            }
+            else {
+                alertBuilder.setPositiveButton("Изменить", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        if (!textName.getText().toString().isEmpty() && !textMoney.getText().toString().isEmpty()) {
+                            database.update(adapterContextMenuInfo2.id, textName.getText().toString(),Integer.parseInt(textMoney.getText().toString()), formatedDate);
+                            cursor.requery();
+                            try {
+                                totalMoney += (Integer.parseInt(textMoney.getText().toString())-oldMoney);
+                                textTotalMoney.setText(Integer.toString(totalMoney));
+                            } catch (ParseException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                });
+            }
+            AlertDialog dialog = alertBuilder.create();
+            dialog.show();
             return true;
         }
         return  super.onContextItemSelected(item);

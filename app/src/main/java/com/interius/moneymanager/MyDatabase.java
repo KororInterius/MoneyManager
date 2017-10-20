@@ -65,7 +65,7 @@ public class MyDatabase {
     public Cursor findRec(int pos)
     {
         Cursor c ;
-        String[] columns = new String[]{COLUMN_MONEY};
+        String[] columns = new String[]{COLUMN_MONEY,COLUMN_NAME};
         c = myDatabase.query(TABLE_NAME,columns,null,null,null,null,null,null);
         c.moveToFirst();
         c.moveToPosition(pos);
@@ -75,6 +75,16 @@ public class MyDatabase {
     public void delRec(long id)
     {
         myDatabase.delete(TABLE_NAME, COLUMN_ID + " = " + id, null);
+    }
+
+    public void update(long id, String name, int money, String date)
+    {
+        ContentValues cv = new ContentValues();
+        cv.put(COLUMN_NAME, name);
+        cv.put(COLUMN_MONEY, money);
+        cv.put(COLUMN_DATE, date);
+        // обновляем по id
+        myDatabase.update(TABLE_NAME, cv, "_id="+id, null);
     }
 
 
